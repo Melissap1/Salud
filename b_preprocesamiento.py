@@ -26,14 +26,6 @@ df
 
 En la siguiente función se estandarizan las variables y se separan los datos en entrenamiento, validación y prueba.
 
-* El conjunto de entrenamiento se utiliza para ajustar los pesos del modelo y permitir que este aprenda los patrones subyacentes en los datos.
-
-* El conjunto de prueba (test) se reserva exclusivamente para la evaluación final del modelo, proporcionando una medición imparcial de su rendimiento en datos que no ha visto durante el proceso de entrenamiento.
-
-* El conjunto de validación se utiliza para optimizar los hiperparámetros del modelo, permitiendo ajustar configuraciones como la tasa de aprendizaje o el número de capas en el caso de redes neuronales, sin influir en la evaluación final.
-
-En general, se sigue una distribución de los datos en:
-
 * 70% para entrenamiento.
 * 20% para validación, con el fin de optimizar hiperparámetros.
 * 10% para prueba, con el objetivo de obtener una evaluación final e imparcial del rendimiento del modelo.
@@ -58,6 +50,6 @@ def preparar_datos(df):
 
 X_train, X_val, X_test, y_train, y_val, y_test = preparar_datos(df)
 
-#print(f"X_train: {X_train.shape}, y_train: {y_train.shape}")
-#print(f" X_val: {X_val.shape}, y_val: {y_val.shape}")
-#print(f" X_test: {X_test.shape}, y_test: {y_test.shape}")
+print(f"X_train: {X_train.shape}, y_train: {y_train.shape}")
+print(f" X_val: {X_val.shape}, y_val: {y_val.shape}")
+print(f" X_test: {X_test.shape}, y_test: {y_test.shape}")
