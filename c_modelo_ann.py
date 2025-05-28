@@ -312,12 +312,12 @@ df_results
 """
 
 # Evaluación en el conjunto de prueba
-test_loss, test_auc = ann3.evaluate(X_test, y_test)
+test_loss, test_auc = best_ANN.evaluate(X_test, y_test)
 print(f"\nMejor AUC on test set: {test_auc:.4f}")
 
 ####probabilidades en test #######
 
-prob=ann3.predict(X_test)
+prob=best_ANN.predict(X_test)
 sns.histplot(prob, legend=False, bins=30)
 plt.title("Distribución de probabilidades en X_test")
 plt.xlabel("Probabilidad de tener diabetes")
@@ -325,16 +325,16 @@ plt.xlabel("Probabilidad de tener diabetes")
 """Se observaron agrupaciones de predicciones cercanas a 0 y a 1, lo que sugiere que el modelo tiene alta confianza en muchas de sus predicciones."""
 
 ### probabilidades en entrenamiento #####
-prob1=ann3.predict(X_train)
+prob1=best_ANN.predict(X_train)
 sns.histplot(prob1, legend=False, bins=30)
 plt.title("Distribución de probabilidades en X_train")
 plt.xlabel("Probabilidad de tener diabetes")
 
 """Se observaron agrupaciones de predicciones cercanas a 0, lo que sugiere que el modelo tiene alta confianza en muchas de sus predicciones en los datos de entrenamento cuando no se tiene diabetes."""
 
-threshold_neu=0.5
+threshold_diabetes=0.5
 
-pred_train=(ann3.predict(X_train)>=threshold_neu).astype('int')
+pred_train=(ann3.predict(X_train)>=threshold_diabetes).astype('int')
 print(metrics.classification_report(y_train, pred_train))
 cm=metrics.confusion_matrix(y_train,pred_train, labels=[1,0])
 disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Pneu', 'Normal'])
@@ -343,47 +343,75 @@ disp.plot()
 
 
 
-pred_test=(ann3.predict(X_test)>=threshold_neu).astype('int')
+pred_test=(ann3.predict(X_test)>=threshold_diabetes).astype('int')
 print(metrics.classification_report(y_test, pred_test))
 cm=metrics.confusion_matrix(y_test,pred_test, labels=[1,0])
 disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Pneu', 'Normal'])
 disp.plot()
 
-threshold_no_neu=0.2
+threshold_no_diabetes=0.4
 
-pred_train=(ann3.predict(X_train)<=threshold_no_neu).astype('int')
+pred_train=(ann3.predict(X_train)<=threshold_no_diabetes).astype('int')
 print(metrics.classification_report(y_train, pred_train))
 cm=metrics.confusion_matrix(y_train,pred_train, labels=[1,0])
 disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['No Pneu', 'Otros'])
 disp.plot()
 
-pred_test=(ann3.predict(X_test)<=threshold_no_neu).astype('int')
+pred_test=(ann3.predict(X_test)<=threshold_no_diabetes).astype('int')
 print(metrics.classification_report(y_test, pred_test))
 cm=metrics.confusion_matrix(y_test,pred_test, labels=[1,0])
 disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['No Pneu', 'Otros'])
 disp.plot()
 
-prob=ann3.predict(X_test)
+threshold_diab=0.6
 
-# Clasificación según threshold_neu (alta probabilidad de diabetes)
-clas_neu = ['No diabetes' if p > threshold_neu else 'No ident' for p in prob]
+pred_train=(ann3.predict(X_train)>=threshold_diab).astype('int')
+print(metrics.classification_report(y_train, pred_train))
+cm=metrics.confusion_matrix(y_train,pred_train, labels=[1,0])
+disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Pneu', 'Normal'])
+disp.plot()
 
-# Clasificación según threshold_no_neu (baja probabilidad de diabetes)
-clas_no_neu = ['No diabetes' if p < threshold_no_neu else 'No ident' for p in prob]
 
-# Contar y calcular porcentajes
-def mostrar_resultados(clasificaciones, nombre_threshold):
-    clases, count = np.unique(clasificaciones, return_counts=True)
-    porcentaje = count * 100 / np.sum(count)
-    print(f"\n🎯 Resultados para {nombre_threshold}:\n")
-    for c, p in zip(clases, porcentaje):
-        print(f"  {c}: {p:.2f}%")
 
-# Mostrar ambos resultados
-mostrar_resultados(clas_neu, "threshold_neu (> 0.5)")
-mostrar_resultados(clas_no_neu, "threshold_no_neu (> 0.2)")
 
-"""Como estamos en busca de un umbral para diagnóstico temprano, esto significa detectar la mayoría de los casos reales de diabetes, aunque eso implique cometer algunos errores (falsos positivos).Porque no diagnosticar a una persona que sí tiene diabetes puede traer consecuencias graves a largo plazo (ceguera, amputaciones, infartos). Un falso positivo, en cambio, solo llevará a hacer más exámenes (no pone en riesgo la vida del paciente). Es por esto que definimos el threshold en 0.2
+pred_test=(ann3.predict(X_test)>=threshold_diab).astype('int')
+print(metrics.classification_report(y_test, pred_test))
+cm=metrics.confusion_matrix(y_test,pred_test, labels=[1,0])
+disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Pneu', 'Normal'])
+disp.plot()
+
+prob = ann3.predict(X_test).ravel()
+
+thresholds = {
+    'Threshold 0.4': 0.4,
+    'Threshold 0.5': 0.5,
+    'Threshold 0.6': 0.6  }
+
+def clasificar_y_contar(prob, threshold):
+    clases = []
+    for p in prob:
+        if p > threshold:
+            clases.append("Diabetes")
+        elif p < 1 - threshold:
+            clases.append("No diabetes")
+        else:
+            clases.append("No ident")
+    clases_np = np.array(clases)
+    labels, counts = np.unique(clases_np, return_counts=True)
+    total = counts.sum()
+    porcentaje = {label: count * 100 / total for label, count in zip(labels, counts)}
+    return porcentaje
+
+print("📊 Comparativo de thresholds\n")
+for nombre, th in thresholds.items():
+    resultados = clasificar_y_contar(prob, th)
+    print(f"🔹 {nombre} (t={th}):")
+    for clase in ['Diabetes', 'No diabetes', 'No ident']:
+        porcentaje = resultados.get(clase, 0)
+        print(f"   {clase}: {porcentaje:.2f}%")
+    print()
+
+"""Como estamos en busca de un umbral para diagnóstico temprano, esto significa detectar la mayoría de los casos reales de diabetes, aunque eso implique cometer algunos errores (falsos positivos).Porque no diagnosticar a una persona que sí tiene diabetes puede traer consecuencias graves a largo plazo (ceguera, amputaciones, infartos). Un falso positivo, en cambio, solo llevará a hacer más exámenes (no pone en riesgo la vida del paciente). Es por esto que definimos el threshold en 0.5 y no valores menores o mayores ya que es el que mejor predice la mayor cantidad de los que no tienen diabetes de manera acertiva y tambien predice el mayor valor de verdaderos positivos con 16 mujeres  que predice con diabetes y que si tienen diabetes.
 
 <font color='056938'> **Predicciones mejor modelo de red neuronal: Modelo con Dropout**</font>
 """
@@ -391,11 +419,11 @@ mostrar_resultados(clas_no_neu, "threshold_no_neu (> 0.2)")
 #Prediccion del mejor modelo
 y_test_pred_ann3= ann3.predict(X_test)
 
-"""Para evaluar la capacidad del modelo de predecir correctamente si una persona tiene diabetes, se construye una matriz de confusión. Dado que la red neuronal genera probabilidades de pertenecer a cada clase, se establece un umbral de 0.2: si la probabilidad predicha es superior a 0.2, se clasifica al individuo como diabético (1); de lo contrario, se clasifica como no diabético (0)."""
+"""Para evaluar la capacidad del modelo de predecir correctamente si una persona tiene diabetes, se construye una matriz de confusión. Dado que la red neuronal genera probabilidades de pertenecer a cada clase, se establece un umbral de 0.5: si la probabilidad predicha es superior a 0.5, se clasifica al individuo como diabético (1); de lo contrario, se clasifica como no diabético (0)."""
 
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
-y_test_pred_ann3= (y_test_pred_ann3 > 0.2).astype(int)  # Convertir a clases binarias
+y_test_pred_ann3= (y_test_pred_ann3 > 0.5).astype(int)  # Convertir a clases binarias
 
 # Generar la matriz de confusión
 cm_test_ann = confusion_matrix(y_test, y_test_pred_ann3)
@@ -421,11 +449,11 @@ print(f'Recall: {recall_ANN}')
 print(f'Especificidad: {especificidad_ANN}')
 print(f'F1 score: {f1_score_ANN}')
 
-"""**Accuracy**: El modelo clasifica correctamente el 62.33% de las muestras en general, es decir, acierta a predecir si una persona tiene o no diabetes en el 75.32% de los casos.
+"""**Accuracy:** El modelo clasifica correctamente el 75.32% de las muestras en general, es decir, acierta a predecir si una persona tiene o no diabetes en el 75.32% de los casos.
 
-**Precision**: De todas las muestras que el modelo clasificó con diabetes, el 45.45% realmente eran diabeticas.
+**Precision:** De todas las muestras que el modelo clasificó con diabetes, el 61.54% realmente eran diabeticas.
 
-**Recall**: El modelo identifica captura el 80% de todas las personas con diabetes en el conjunto de datos.
+**Recall:** El modelo identifica captura el 64% de todas las personas con diabetes en el conjunto de datos.
 
-**Especificidad**: cuando el modelo dice que alguien no tiene diabetes, tiene razón en el 57.97% de los casos.
+**Especificidad:** cuando el modelo dice que alguien no tiene diabetes, tiene razón en el 80.77% de los casos.
 """
