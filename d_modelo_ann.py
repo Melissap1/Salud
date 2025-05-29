@@ -35,6 +35,12 @@ drive.mount('/content/drive')
 #Define la parte del directorio que quieres trabajar
 path = "/content/drive/MyDrive/Mod2/Salud"
 
+# Add the path to sys.path
+sys.path.append(path)
+os.chdir(path)
+
+os.curdir
+
 # Ruta al archivo
 ruta = '/content/drive/MyDrive/Mod2/Salud/data/df_limpia.xlsx'
 
@@ -336,8 +342,8 @@ threshold_diabetes=0.5
 
 pred_train=(ann3.predict(X_train)>=threshold_diabetes).astype('int')
 print(metrics.classification_report(y_train, pred_train))
-cm=metrics.confusion_matrix(y_train,pred_train, labels=[1,0])
-disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Pneu', 'Normal'])
+cm=metrics.confusion_matrix(y_train,pred_train, labels=[0,1])
+disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Normal', 'Diabetes'])
 disp.plot()
 
 
@@ -345,30 +351,30 @@ disp.plot()
 
 pred_test=(ann3.predict(X_test)>=threshold_diabetes).astype('int')
 print(metrics.classification_report(y_test, pred_test))
-cm=metrics.confusion_matrix(y_test,pred_test, labels=[1,0])
-disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Pneu', 'Normal'])
+cm=metrics.confusion_matrix(y_test,pred_test, labels=[0,1])
+disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Normal', 'Diabetes'])
 disp.plot()
 
 threshold_no_diabetes=0.4
 
 pred_train=(ann3.predict(X_train)<=threshold_no_diabetes).astype('int')
 print(metrics.classification_report(y_train, pred_train))
-cm=metrics.confusion_matrix(y_train,pred_train, labels=[1,0])
-disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['No Pneu', 'Otros'])
+cm=metrics.confusion_matrix(y_train,pred_train, labels=[0,1])
+disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Normal', 'Diabetes'])
 disp.plot()
 
 pred_test=(ann3.predict(X_test)<=threshold_no_diabetes).astype('int')
 print(metrics.classification_report(y_test, pred_test))
-cm=metrics.confusion_matrix(y_test,pred_test, labels=[1,0])
-disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['No Pneu', 'Otros'])
+cm=metrics.confusion_matrix(y_test,pred_test, labels=[0,1])
+disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Normal', 'Diabetes'])
 disp.plot()
 
 threshold_diab=0.6
 
 pred_train=(ann3.predict(X_train)>=threshold_diab).astype('int')
 print(metrics.classification_report(y_train, pred_train))
-cm=metrics.confusion_matrix(y_train,pred_train, labels=[1,0])
-disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Pneu', 'Normal'])
+cm=metrics.confusion_matrix(y_train,pred_train, labels=[0,1])
+disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Normal', 'Diabetes'])
 disp.plot()
 
 
@@ -376,8 +382,8 @@ disp.plot()
 
 pred_test=(ann3.predict(X_test)>=threshold_diab).astype('int')
 print(metrics.classification_report(y_test, pred_test))
-cm=metrics.confusion_matrix(y_test,pred_test, labels=[1,0])
-disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Pneu', 'Normal'])
+cm=metrics.confusion_matrix(y_test,pred_test, labels=[0,1])
+disp=metrics.ConfusionMatrixDisplay(cm,display_labels=['Normal', 'Diabetes'])
 disp.plot()
 
 prob = ann3.predict(X_test).ravel()
@@ -385,28 +391,27 @@ prob = ann3.predict(X_test).ravel()
 thresholds = {
     'Threshold 0.4': 0.4,
     'Threshold 0.5': 0.5,
-    'Threshold 0.6': 0.6  }
+    'Threshold 0.6': 0.6
+}
 
-def clasificar_y_contar(prob, threshold):
+def clasificar_y_contar_dos_grupos(prob, threshold):
     clases = []
     for p in prob:
         if p > threshold:
-            clases.append("Diabetes")
-        elif p < 1 - threshold:
-            clases.append("No diabetes")
-        else:
             clases.append("No ident")
+        else:
+            clases.append("Diabetes")
     clases_np = np.array(clases)
     labels, counts = np.unique(clases_np, return_counts=True)
     total = counts.sum()
     porcentaje = {label: count * 100 / total for label, count in zip(labels, counts)}
     return porcentaje
 
-print("📊 Comparativo de thresholds\n")
+print("📊 Comparativo de thresholds (solo Diabetes y No ident)\n")
 for nombre, th in thresholds.items():
-    resultados = clasificar_y_contar(prob, th)
+    resultados = clasificar_y_contar_dos_grupos(prob, th)
     print(f"🔹 {nombre} (t={th}):")
-    for clase in ['Diabetes', 'No diabetes', 'No ident']:
+    for clase in ['Diabetes', 'No ident']:
         porcentaje = resultados.get(clase, 0)
         print(f"   {clase}: {porcentaje:.2f}%")
     print()
@@ -457,3 +462,5 @@ print(f'F1 score: {f1_score_ANN}')
 
 **Especificidad:** cuando el modelo dice que alguien no tiene diabetes, tiene razón en el 80.77% de los casos.
 """
+
+ann3.save('/content/drive/MyDrive/Mod2/Salud/salidas/best_model.keras')
